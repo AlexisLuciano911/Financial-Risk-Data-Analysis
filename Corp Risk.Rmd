@@ -1,0 +1,163 @@
+---
+title: "Corporate Financial Risk Assessment"
+author: "Alexis Luciano"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+#Loading in all the libraries I need for this project
+
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(ggcorrplot)
+
+#How I read in the .csv file
+
+corp_risk <- read.csv('Corporate_Financial_Risk_Assessment_Data.csv')
+
+#Here I only want the unique company ID's so I get rid of any potential duplicates
+
+corp_risk <- corp_risk |>
+  distinct()
+
+```
+
+```{r}
+
+#Finding the global average financial risk label and turning it into a percentage
+
+overall_risk <- mean(corp_risk$Financial_Risk_Label) * 100
+
+#Grouping the averages by sector and arranging them in descending order
+
+sector_risk <- corp_risk |>
+  group_by(Industry_Sector) |>
+  summarize(risk_percentage = mean(Financial_Risk_Label) * 100) |>
+  arrange(desc(risk_percentage))
+```
+
+```{r}
+
+#Creating the bar graph showing the each sector in descending order by their percentage average
+
+overall_risk_graph = ggplot(sector_risk, aes( x = reorder(Industry_Sector, -risk_percentage), y = risk_percentage, fill = risk_percentage) ) +
+  geom_bar(stat = 'identity', show.legend = FALSE) +
+  scale_fill_gradient(low = "#FFCC80", high = "#E65100") +
+  geom_hline(yintercept = overall_risk, color = 'red', linetype = 'dashed', size = 1) +
+  annotate("text", x = 5.5, y = overall_risk + 1.5, label = paste0("Global Average (", round(overall_risk, 1), "%)"), color = "red") +
+  labs(
+    title = "Which Sectors Hold the Highest Financial Risk?",
+    x = "Industry Sector",
+    y = "Percentage of High-Risk Companies (%)"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", size = 14)) 
+
+#How I saved the graph as a png and the dimensions of the image
+
+ggsave(
+  filename = "overall_risk_final.png",
+  plot = overall_risk_graph,
+  width = 6,
+  height = 4,
+  units = "in",
+  dpi = 300
+)
+```
+
+```{r}
+
+#Finding the global average for the closing stock price
+
+overall_stock_close <- mean(corp_risk$Stock_Price_Close) 
+
+#Again grouping the average by sector in descending order
+
+sector_stock_close <- corp_risk |>
+  group_by(Industry_Sector) |>
+  summarize(stock_price = mean(Stock_Price_Close)) |>
+  arrange(desc(stock_price))
+
+```
+
+```{r}
+
+#Creating the bar graph for the average closing stock price per sector
+
+sector_stock_close_graph <- ggplot(sector_stock_close, aes( x = reorder(Industry_Sector, -stock_price), y = stock_price, fill = stock_price) ) +
+  geom_bar(stat = 'identity', show.legend = FALSE) +
+  scale_fill_gradient(low = "#FFCC80", high = "#E65100") +
+  geom_hline(yintercept = overall_stock_close, color = 'red', linetype = 'dashed', size = 1) +
+  annotate("text", x = 5.3, y = overall_stock_close + 15, label = paste0("Global Average ($", round(overall_stock_close, 1), ")"), color = "red") +
+  labs(
+    title = "Which Sectors Hold the Highest Closing Stock Price?",
+    x = "Industry Sector",
+    y = "Closing Stock Price"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", size = 14)) 
+
+#How I saved the bar graph as a png
+
+ggsave(
+  filename = "sector_stock_close_final.png",
+  plot = sector_stock_close_graph,
+  width = 6,
+  height = 4,
+  units = "in",
+  dpi = 300
+)
+```
+
+```{r}
+
+#Creating the correlation matrix by converting the risk label from a character to a numeric variable and selecting the variables that are only numeric
+
+numeric_data <- corp_risk |>
+  mutate(Financial_Risk_Label = as.numeric(as.character(Financial_Risk_Label))) |>
+  select(where(is.numeric))
+
+#The correlation matrix
+
+corr_matrix <- cor(numeric_data, use = "complete.obs")
+
+```
+
+```{r}
+
+#Creating the vizualisation for the correlation matrix as well as what the code is doing since I am not that familiar with corrplot
+
+ggplot_cormatrix <- ggcorrplot(corr_matrix, 
+           hc.order = TRUE,           # Reorders variables so highly correlated ones sit together
+           type = "lower",            # Cuts the matrix in half diagonally so you don't repeat numbers
+           lab = TRUE,                # Adds the actual numeric scores inside the squares
+           lab_size = 3,              # Sets label text size
+           colors = c("#e71d36", "white", "#2ec4b6"), # Red (Negative corr), White (Zero), Teal (Positive corr)
+           title = "Corporate Financial Risk: Correlation Matrix",
+           ggtheme = theme_minimal()) +
+  theme(
+    plot.title = element_text(face = "bold", size = 15),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 9),
+    axis.text.y = element_text(size = 9)
+  )
+
+#Again how I saved the matrix as a png
+
+ggsave(
+  filename = "correlation_heatmap_final.png", 
+  plot = ggplot_cormatrix,
+  width = 9,          
+  height = 8, 
+  units = "in", 
+  dpi = 300           
+)
+
+
+```
