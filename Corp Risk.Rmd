@@ -132,7 +132,7 @@ corr_matrix <- cor(numeric_data, use = "complete.obs")
 
 ```{r}
 
-#Creating the vizualisation for the correlation matrix as well as what the code is doing since I am not that familiar with corrplot
+#Creating the visualization for the correlation matrix as well as what the code is doing since I am not that familiar with corrplot
 
 ggplot_cormatrix <- ggcorrplot(corr_matrix, 
            hc.order = TRUE,           # Reorders variables so highly correlated ones sit together
